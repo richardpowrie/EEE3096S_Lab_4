@@ -8,22 +8,24 @@
 
 import RPi.GPIO as GPIO
 import time
+import spidev
+import os
 
 ##############################################################################
 #Define
 ##############################################################################
 ####BCM numbering
 #switches
-button1  = 4 #reset
+button1  = 4  #reset
 button2  = 14 #frequency
 button3  = 15 #stop
-#button4  = 18 #display
+button4  = 18 #display
 
 #ADC
-SCLK     = 11#connected to ADC pin 13
-MOSI     = 10#connected to ADC pin 11
-MISO     = 9 #connected to ADC pin 12
-ADCselect= 25#select ADC by pulling low, default high for no comms
+SPICLK   = 11          #connected to ADC pin 13
+SPIMOSI  = 10          #connected to ADC pin 11
+SPIMISO  = 9           #connected to ADC pin 12
+SPICS    = 8          #select ADC by pulling low, default high for no comms
 """ADC set up as follows:
 Channel Peripheral ADC pin Selection bits
 CH0     Pot        1       1000
@@ -55,8 +57,15 @@ f3       = 0.5 #every 2s
 outHeading = "Time      Timer     Pot    Temp  Light\n"#format: 2 spaces between columns
 outLines   = "--------------------------------------"
 outString  = outHeading+outLines
+dummyData  = 1111111111  #10 bits of dummy data
 ##############################################################################
 
+##############################################################################
+#SPI setup
+##############################################################################
+spi = spidev.SpiDev()
+spi.open(0,0)
+##############################################################################
 
 ##############################################################################
 #GPIO setup
@@ -64,6 +73,10 @@ outString  = outHeading+outLines
 #use GPIO BCM pin numbering
 GPIO.setmode(GPIO.BCM)              
 #outputs
+GPIO.setup(SPIMOSI,GPIO.OUT)
+GPIO.setup(SPIMISO, GPIO.IN)
+GPIO.setup(SPICLK, GPIO.OUT)
+GPIO.setup(SPICS, GPIO.OUT)
 
 #set up buttons as digital inputs, using pull-up resistors
 GPIO.setup(button1, GPIO.IN, pull_up_down=GPIO.PUD_UP)
@@ -77,7 +90,12 @@ GPIO.setup(button4, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 ##############################################################################
 #main
 ##############################################################################
-print(outString)
+
+
+
+
+
+
 #release GPIO pins from operation
 GPIO.cleanup()
 ##############################################################################
