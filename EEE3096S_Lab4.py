@@ -8,6 +8,7 @@
 
 import RPi.GPIO as GPIO
 import time
+
 import spidev
 import os
 import sys
@@ -118,7 +119,9 @@ def convertTemp(data, places):
 #main
 ##############################################################################
 print(outString)
+
 delay = t1
+timerStart = time.time()
 while True:
     try:
         #read pot
@@ -130,16 +133,17 @@ while True:
         AmbTemp = convertTemp(Vtherm,decimal_places)
         #read light
         LDR_data = GetData(LDR)
-        VLDR = ConvertVolts(LDR_data,decimal_places)
+        LDRper = ConvertVolts(LDR_data,decimal_places)/3.11*100
+        
         #create output string
-        #output_string = "\t\t\t"+Vpot.toString()
-        output_string = "%10.3f abc" % Vpot
+        currentTime = time.strftime("%H:%M:%S",time.localtime())        
+        timer = time.strftime("%H:%M:%S",time.gmtime(time.time()-timerStart))
+        output_string = currentTime + "  " + timer+"  " +("%3.1f V" % Vpot)+ "  " + ("%2.0f C" % AmbTemp)+ "  " + ("%2.0f%%" % LDRper)
         print(output_string)
-        print(Vpot)
-        print(AmbTemp)
-        print(VLDR)
-        break
+        
+        #delay
         time.sleep(delay)
+        
     except KeyboardInterrupt:
         spi.close()
         break
