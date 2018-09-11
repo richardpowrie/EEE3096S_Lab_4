@@ -132,9 +132,14 @@ def callback2(button2):#frequency
         delay=t1
 	print("new sample time:"+str(delay))
 
+def callback3(button3):#display
+    global display
+    print(display)
+
 GPIO.add_event_detect(button1, GPIO.FALLING, callback=callback1,bouncetime=400)
 GPIO.add_event_detect(button2, GPIO.FALLING, callback=callback2,bouncetime=400)
-    
+GPIO.add_event_detect(button3, GPIO.FALLING, callback=callback4,bouncetime=400)
+
 ##############################################################################
 #main
 ##############################################################################
@@ -144,22 +149,28 @@ delay = t1
 timerStart = time.time()
 while True:
     try:
-        #read pot
-        pot_data = GetData(pot)
-        Vpot = ConvertVolts(pot_data,decimal_places)
-        #read temp
-        therm_data = GetData(therm)
-        Vtherm = ConvertVolts(therm_data,decimal_places)
-        AmbTemp = convertTemp(Vtherm,decimal_places)
-        #read light
-        LDR_data = GetData(LDR)
-        LDRper = ConvertVolts(LDR_data,decimal_places)/3.11*100
-        
-        #create output string
-        currentTime = time.strftime("%H:%M:%S",time.localtime())        
-        timer = time.strftime("%H:%M:%S",time.gmtime(time.time()-timerStart))
-        output_string = currentTime + "  " + timer+"  " +("%3.1f V" % Vpot)+ "  " + ("%2.0f C" % AmbTemp)+ "  " + ("%2.0f%%" % LDRper)
-        print(output_string)
+        if(monitor_on==True or display_count<5):
+            #read pot
+            pot_data = GetData(pot)
+            Vpot = ConvertVolts(pot_data,decimal_places)
+            #read temp
+            therm_data = GetData(therm)
+            Vtherm = ConvertVolts(therm_data,decimal_places)
+            AmbTemp = convertTemp(Vtherm,decimal_places)
+            #read light
+            LDR_data = GetData(LDR)
+            LDRper = ConvertLight(LDR_data,decimal_places)
+            
+            #create output string
+            currentTime = time.strftime("%H:%M:%S",time.localtime())        
+            timer = time.strftime("%H:%M:%S",time.gmtime(time.time()-timerStart))
+            output_string = currentTime + "  " + timer+"  " +("%3.1f V" % Vpot)+ "  " + ("%2.0f C" % AmbTemp)+ "  " + ("%2.0f%%" % LDRper)
+            
+            if(monitor_on==True):
+                print(output_string)
+            else:
+                display_count+=1
+                display = display +"\n"+ output_string
         
         #delay
         time.sleep(delay)
@@ -167,6 +178,8 @@ while True:
     except KeyboardInterrupt:
         spi.close()
         break
+    
+    
         
 #release GPIO pins from operation
-#GPIO.cleanup()
+GPIO.cleanup()
