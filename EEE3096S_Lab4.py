@@ -76,21 +76,21 @@ spi.max_speed_hz=1000000
 
 
 ##############################################################################
-#GPIO setup
+GPIO setup
 ##############################################################################
 #use GPIO BCM pin numbering
-#GPIO.setmode(GPIO.BCM)              
+GPIO.setmode(GPIO.BCM)              
 #outputs
-#GPIO.setup(SPIMOSI,GPIO.OUT)
-#GPIO.setup(SPIMISO, GPIO.IN)
-#GPIO.setup(SPICLK, GPIO.OUT)
-#GPIO.setup(SPICS, GPIO.OUT)
+GPIO.setup(SPIMOSI,GPIO.OUT)
+GPIO.setup(SPIMISO, GPIO.IN)
+GPIO.setup(SPICLK, GPIO.OUT)
+GPIO.setup(SPICS, GPIO.OUT)
 
 #set up buttons as digital inputs, using pull-up resistors
-#GPIO.setup(button1, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-#GPIO.setup(button2, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-#GPIO.setup(button3, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-#GPIO.setup(button4, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(button1, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(button2, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(button3, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(button4, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 ##############################################################################
 #functions
@@ -114,7 +114,27 @@ def convertTemp(data, places):
     temp = round(temp,places)
     return temp
 
+#threaded callbacks
+def callback1(button1):#reset
+    global timerStart
+    timerStart = time.time()#reset timer
+    os.system("clear")
+	print("Reset pressed")
+    print(outString)
+    
+def callback2(button2):#frequency
+    global delay
+    if delay==t1:
+        delay=t2
+    elif delay==t2:
+        delay=t3
+    else:
+        delay=t1
+	print("new sample time:"+str(delay))
 
+GPIO.add_event_detect(button1, GPIO.FALLING, callback=callback1,bouncetime=400)
+GPIO.add_event_detect(button2, GPIO.FALLING, callback=callback2,bouncetime=400)
+    
 ##############################################################################
 #main
 ##############################################################################
