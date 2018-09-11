@@ -65,7 +65,11 @@ outLines   = "--------------------------------------"
 outString  = outHeading+outLines
 
 decimal_places = 3
-
+monitor_on = True
+display =    "First five readings since stop pressed"
+display_count = 0
+delay = t1
+timerStart = time.time()
 
 ##############################################################################
 #SPI setup
@@ -76,15 +80,10 @@ spi.max_speed_hz=1000000
 
 
 ##############################################################################
-GPIO setup
+#GPIO setup
 ##############################################################################
 #use GPIO BCM pin numbering
 GPIO.setmode(GPIO.BCM)              
-#outputs
-GPIO.setup(SPIMOSI,GPIO.OUT)
-GPIO.setup(SPIMISO, GPIO.IN)
-GPIO.setup(SPICLK, GPIO.OUT)
-GPIO.setup(SPICS, GPIO.OUT)
 
 #set up buttons as digital inputs, using pull-up resistors
 GPIO.setup(button1, GPIO.IN, pull_up_down=GPIO.PUD_UP)
@@ -114,6 +113,12 @@ def convertTemp(data, places):
     temp = round(temp,places)
     return temp
 
+def convertLight(data, places):
+	#max volt output is 3.11 (from measurement)
+	volt = ConvertVolts(data,places)
+	
+	return volt/3.11*100
+
 #threaded callbacks
 def callback1(button1):#reset
     global timerStart
@@ -131,24 +136,39 @@ def callback2(button2):#frequency
     else:
         delay=t1
 	print("new sample time:"+str(delay))
-
-def callback3(button3):#display
+    
+def callback3(button3):#stop
+    global monitor_on
+    global display_count
+    global display
+    display = ""
+    if monitor_on==True:
+		print("Stop button pressed")
+        monitor_on=False
+        display_count = 0
+    else:
+	print("Start button pressed")
+        monitor_on=True
+    
+def callback4(button4):#display
     global display
     print(display)
-
+    
 GPIO.add_event_detect(button1, GPIO.FALLING, callback=callback1,bouncetime=400)
 GPIO.add_event_detect(button2, GPIO.FALLING, callback=callback2,bouncetime=400)
-GPIO.add_event_detect(button3, GPIO.FALLING, callback=callback4,bouncetime=400)
-
+GPIO.add_event_detect(button3, GPIO.FALLING, callback=callback3,bouncetime=400)
+GPIO.add_event_detect(button4, GPIO.FALLING, callback=callback4,bouncetime=400)
+    
 ##############################################################################
 #main
 ##############################################################################
 print(outString)
 
-delay = t1
+
 timerStart = time.time()
 while True:
     try:
+        
         if(monitor_on==True or display_count<5):
             #read pot
             pot_data = GetData(pot)
