@@ -65,7 +65,11 @@ outLines   = "--------------------------------------"
 outString  = outHeading+outLines
 
 decimal_places = 3
-
+monitor_on = True
+display =    "First five readings since stop pressed"
+display_count = 0
+delay = t1
+timerStart = time.time()
 
 ##############################################################################
 #SPI setup
@@ -79,18 +83,13 @@ spi.max_speed_hz=1000000
 #GPIO setup
 ##############################################################################
 #use GPIO BCM pin numbering
-#GPIO.setmode(GPIO.BCM)              
-#outputs
-#GPIO.setup(SPIMOSI,GPIO.OUT)
-#GPIO.setup(SPIMISO, GPIO.IN)
-#GPIO.setup(SPICLK, GPIO.OUT)
-#GPIO.setup(SPICS, GPIO.OUT)
+GPIO.setmode(GPIO.BCM)              
 
 #set up buttons as digital inputs, using pull-up resistors
-#GPIO.setup(button1, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-#GPIO.setup(button2, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-#GPIO.setup(button3, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-#GPIO.setup(button4, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(button1, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(button2, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(button3, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(button4, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 ##############################################################################
 #functions
@@ -114,32 +113,84 @@ def convertTemp(data, places):
     temp = round(temp,places)
     return temp
 
+def convertLight(data, places):
+	#max volt output is 3.11 (from measurement)
+	volt = ConvertVolts(data,places)
+	
+	return volt/3.11*100
 
+#threaded callbacks
+def callback1(button1):#reset
+    global timerStart
+    timerStart = time.time()#reset timer
+    os.system("clear")
+	print("Reset pressed")
+    print(outString)
+    
+def callback2(button2):#frequency
+    global delay
+    if delay==t1:
+        delay=t2
+    elif delay==t2:
+        delay=t3
+    else:
+        delay=t1
+	print("new sample time:"+str(delay))
+    
+def callback3(button3):#stop
+    global monitor_on
+    global display_count
+    global display
+    display = ""
+    if monitor_on==True:
+		print("Stop button pressed")
+        monitor_on=False
+        display_count = 0
+    else:
+	print("Start button pressed")
+        monitor_on=True
+    
+def callback4(button4):#display
+    global display
+    print(display)
+    
+GPIO.add_event_detect(button1, GPIO.FALLING, callback=callback1,bouncetime=400)
+GPIO.add_event_detect(button2, GPIO.FALLING, callback=callback2,bouncetime=400)
+GPIO.add_event_detect(button3, GPIO.FALLING, callback=callback3,bouncetime=400)
+GPIO.add_event_detect(button4, GPIO.FALLING, callback=callback4,bouncetime=400)
+    
 ##############################################################################
 #main
 ##############################################################################
 print(outString)
 
-delay = t1
+
 timerStart = time.time()
 while True:
     try:
-        #read pot
-        pot_data = GetData(pot)
-        Vpot = ConvertVolts(pot_data,decimal_places)
-        #read temp
-        therm_data = GetData(therm)
-        Vtherm = ConvertVolts(therm_data,decimal_places)
-        AmbTemp = convertTemp(Vtherm,decimal_places)
-        #read light
-        LDR_data = GetData(LDR)
-        LDRper = ConvertVolts(LDR_data,decimal_places)/3.11*100
         
-        #create output string
-        currentTime = time.strftime("%H:%M:%S",time.localtime())        
-        timer = time.strftime("%H:%M:%S",time.gmtime(time.time()-timerStart))
-        output_string = currentTime + "  " + timer+"  " +("%3.1f V" % Vpot)+ "  " + ("%2.0f C" % AmbTemp)+ "  " + ("%2.0f%%" % LDRper)
-        print(output_string)
+        if(monitor_on==True or display_count<5):
+            #read pot
+            pot_data = GetData(pot)
+            Vpot = ConvertVolts(pot_data,decimal_places)
+            #read temp
+            therm_data = GetData(therm)
+            Vtherm = ConvertVolts(therm_data,decimal_places)
+            AmbTemp = convertTemp(Vtherm,decimal_places)
+            #read light
+            LDR_data = GetData(LDR)
+            LDRper = ConvertLight(LDR_data,decimal_places)
+            
+            #create output string
+            currentTime = time.strftime("%H:%M:%S",time.localtime())        
+            timer = time.strftime("%H:%M:%S",time.gmtime(time.time()-timerStart))
+            output_string = currentTime + "  " + timer+"  " +("%3.1f V" % Vpot)+ "  " + ("%2.0f C" % AmbTemp)+ "  " + ("%2.0f%%" % LDRper)
+            
+            if(monitor_on==True):
+                print(output_string)
+            else:
+                display_count+=1
+                display = display +"\n"+ output_string
         
         #delay
         time.sleep(delay)
@@ -147,6 +198,8 @@ while True:
     except KeyboardInterrupt:
         spi.close()
         break
+    
+    
         
 #release GPIO pins from operation
-#GPIO.cleanup()
+GPIO.cleanup()
